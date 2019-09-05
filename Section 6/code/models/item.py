@@ -1,44 +1,33 @@
-import sqlite3
+from db import db
+class ItemModel(db.Model):
+    __tablename__ = 'items'
 
-class ItemModel:
-    def __init__(self,name,price):
+    id = db.Column(db.Integer , primary_key = True)
+    name = db.Column(db.String(80))
+    price = db.Column(db.Float(precision = 2))
+    
+    store_id = db.Column(db.Integer , db.ForeignKey('stores.id'))
+    store = db.relationship('StoreModel')
+
+
+    def __init__(self,name,price,store_id):
         self.name = name
         self.price = price
+        self.store_id = store_id
 
     def json(self):
         return {'name':self.name,'price':self.price}
 
     @classmethod
     def find_by_name(cls,name):
-        connection = sqlite3.connect('data.db')
-        cursor = connection.cursor()
-
-        query = "SELECT * FROM items WHERE name=?"
-        result =    cursor.execute(query,(name,))
-        row = result.fetchone()
-        connection.close()
-
-        if row:
-            return cls(*row)
-            
-    @classmethod
-    def insert(cls,item):
-        connection = sqlite3.connect('data.db')
-        cursor = connection.cursor()
-
-        query = "INSERT INTO items VALUES (?,?)"
-        cursor.execute(query , (item['name'] , item['price']))
-
-        connection.commit()
-        connection.close()
+        return cls.query.filter_by(name=name).first()
 
     @classmethod
-    def update(cls,item):
-        connection = sqlite3.connect('data.db')
-        cursor = connection.cursor()
+    def save_to_db(cls,item):
+        db.session.add(item)
+        db.session.commit()
 
-        query = "UPDATE items SET price=? WHERE name=?"
-        cursor.execute(query , (item['price'],item['name']))
-
-        connection.commit()
-        connection.close()
+    @classmethod
+    def delete_from_db(cls,item):
+        db.session.delete(item)
+        db.session.commit()
